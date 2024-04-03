@@ -42,8 +42,6 @@ y_test = y_test.values.astype(np.int64)
 y_train = np.clip(y_train, 0, 9)
 y_test = np.clip(y_test, 0, 9)
 
-
-
 # Convert data to PyTorch tensors and move to device
 X_train_tensor = torch.tensor(X_train).reshape(-1, 1, 16, 16).to(device)
 X_test_tensor = torch.tensor(X_test).reshape(-1, 1, 16, 16).to(device)
@@ -80,6 +78,38 @@ class MLP(nn.Module):
         x = x.view(x.size(0), -1)  # Flatten input
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+# Define a new MLP model with different architecture
+class MLP2(nn.Module):
+    def __init__(self):
+        super(MLP2, self).__init__()
+        self.fc1 = nn.Linear(16*16, 512)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = x.view(x.size(0), -1)  # Flatten input
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
+        x = self.fc4(x)
+        return x
+
+# Define another MLP model with different activation function
+class MLP3(nn.Module):
+    def __init__(self):
+        super(MLP3, self).__init__()
+        self.fc1 = nn.Linear(16*16, 256)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = x.view(x.size(0), -1)  # Flatten input
+        x = torch.tanh(self.fc1(x))  # Using tanh activation function
+        x = torch.tanh(self.fc2(x))  # Using tanh activation function
         x = self.fc3(x)
         return x
 
@@ -164,24 +194,36 @@ epochs = 10
 
 # Initialize models, criterion, optimizer
 mlp_model = MLP().to(device)  # Move model to device
+mlp_model2 = MLP2().to(device)  # Move model to device
+mlp_model3 = MLP3().to(device)  # Move model to device
 cnn_model = CNN().to(device)  # Move model to device
 criterion = nn.CrossEntropyLoss()
 mlp_optimizer = optim.Adam(mlp_model.parameters(), lr=lr)
+mlp_optimizer2 = optim.Adam(mlp_model2.parameters(), lr=lr)
+mlp_optimizer3 = optim.Adam(mlp_model3.parameters(), lr=lr)
 cnn_optimizer = optim.Adam(cnn_model.parameters(), lr=lr)
 
 # Initialize TensorBoard writer
 writer = SummaryWriter()
 
-# Training loop
+# Training loop for MLP model
 for epoch in range(epochs):
     train_model(mlp_model, train_loader, criterion, mlp_optimizer, writer, epoch)
-    train_model(cnn_model, train_loader, criterion, cnn_optimizer, writer, epoch)
     test_model(mlp_model, test_loader, criterion, writer, epoch)
+
+# Training loop for MLP2 model
+for epoch in range(epochs):
+    train_model(mlp_model2, train_loader, criterion, mlp_optimizer2, writer, epoch)
+    test_model(mlp_model2, test_loader, criterion, writer, epoch)
+
+# Training loop for MLP3 model
+for epoch in range(epochs):
+    train_model(mlp_model3, train_loader, criterion, mlp_optimizer3, writer, epoch)
+    test_model(mlp_model3, test_loader, criterion, writer, epoch)
+
+# Training loop for CNN model
+for epoch in range(epochs):
+    train_model(cnn_model, train_loader, criterion, cnn_optimizer, writer, epoch)
     test_model(cnn_model, test_loader, criterion, writer, epoch)
 
 writer.close()
-
-# Commented out IPython magic to ensure Python compatibility.
-# %load_ext tensorboard
-# %tensorboard --logdir='./runs'
-
